@@ -10,8 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import com.ctpop.auth.config.JwtConfig;
 
 import java.util.concurrent.TimeUnit;
+import java.util.Date;
 
 /**
  * OTP 인증 관련 비즈니스 로직을 처리하는 서비스
@@ -33,6 +38,7 @@ public class OtpService {
     private final RedisTemplate<String, String> redisTemplate;
     private final TwilioConfig twilioConfig;
     private final TokenService tokenService;
+    private final JwtConfig jwtConfig;
 
     // Redis에 저장할 OTP 관련 키의 접두사
     private static final String OTP_PREFIX = "otp:";
@@ -181,7 +187,14 @@ public class OtpService {
                 String accessToken = tokenService.generateAccessToken(phone);
                 String refreshToken = tokenService.generateRefreshToken(phone);
                 
-                return new TokenResponse(accessToken, refreshToken);
+                // UUID 추출
+                Claims claims = Jwts.parser()
+                    .setSigningKey(jwtConfig.getSecret())
+                    .parseClaimsJws(accessToken)
+                    .getBody();
+                String uuid = claims.get("uuid", String.class);
+                
+                return new TokenResponse(accessToken, refreshToken, uuid);
             }
             
             throw new OtpException("OTP 코드가 일치하지 않습니다.");
@@ -206,5 +219,14 @@ public class OtpService {
             log.warn("Redis 서버가 연결 불가능한 상태입니다: {}", e.getMessage());
             return true;
         }
+    }
+
+    private String generateToken(String phone) {
+        return Jwts.builder()
+            .setSubject(phone)
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(System.currentTimeMillis() + 300000)) // 5분
+            .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())  // jwtConfig 직접 사용
+            .compact();
     }
 } 

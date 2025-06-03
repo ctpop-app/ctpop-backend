@@ -8,6 +8,7 @@ import com.ctpop.auth.dto.LogoutRequest;
 import com.ctpop.auth.exception.OtpException;
 import com.ctpop.auth.service.OtpService;
 import com.ctpop.auth.service.TokenService;
+import com.ctpop.auth.config.JwtConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +39,7 @@ import java.util.Map;
 public class OtpController {
     private final OtpService otpService;
     private final TokenService tokenService;
+    private final JwtConfig jwtConfig;
     
     /**
      * 사용자 전화번호로 SMS OTP를 전송합니다.
@@ -105,19 +109,20 @@ public class OtpController {
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
         try {
             String newAccessToken = tokenService.refreshAccessToken(request.getPhone(), request.getRefreshToken());
-            if (newAccessToken == null) {
-                Map<String, String> response = new HashMap<>();
-                response.put("status", "error");
-                response.put("message", "토큰 갱신에 실패했습니다.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            if (newAccessToken != null) {
+                // UUID 추출
+                Claims claims = Jwts.parser()
+                    .setSigningKey(jwtConfig.getSecret())
+                    .parseClaimsJws(newAccessToken)
+                    .getBody();
+                String uuid = claims.get("uuid", String.class);
+                
+                TokenResponse response = new TokenResponse(newAccessToken, request.getRefreshToken(), uuid);
+                return ResponseEntity.ok(response);
             }
-            
-            return ResponseEntity.ok(new TokenResponse(newAccessToken, request.getRefreshToken()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token refresh failed: " + e.getMessage());
         }
     }
     

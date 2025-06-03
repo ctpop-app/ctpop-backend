@@ -12,6 +12,8 @@ spring:
     client-name: ctpop-client
     lettuce:
       shutdown-timeout: 0ms
+  config:
+    import: optional:file:.env
 
 app:
   twilio:
@@ -19,9 +21,9 @@ app:
     auth-token: ${TWILIO_TOKEN}
     verify-sid: ${TWILIO_VERIFY_SID}
   jwt:
-    secret: ${JWT_SECRET:devSecretKey123456789012345678901234567890}
-    expiration-ms: 1800000      # 30 minutes
-    refresh-expiration-ms: 2592000000  # 30 days
+    secret: ${JWT_SECRET}
+    expiration-ms: 1800000  # 30분
+    refresh-expiration-ms: 2592000000  # 30일
 
 # Swagger/OpenAPI 설정
 springdoc:

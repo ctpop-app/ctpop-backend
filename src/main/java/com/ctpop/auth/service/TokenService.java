@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,6 +32,25 @@ public class TokenService {
 
     // Redis에 저장할 토큰 관련 키의 접두사
     private static final String TOKEN_PREFIX = "token:";
+    private static final String UUID_PREFIX = "uuid:";
+
+    /**
+     * 사용자의 UUID를 가져오거나 생성합니다.
+     * 
+     * @param phone 사용자 전화번호
+     * @return 사용자의 UUID
+     */
+    private String getOrCreateUuid(String phone) {
+        String key = UUID_PREFIX + phone;
+        String uuid = redisTemplate.opsForValue().get(key);
+        
+        if (uuid == null) {
+            uuid = UUID.randomUUID().toString();
+            redisTemplate.opsForValue().set(key, uuid);
+        }
+        
+        return uuid;
+    }
 
     /**
      * 액세스 토큰을 생성합니다.
@@ -43,9 +63,12 @@ public class TokenService {
     public String generateAccessToken(String phone) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtConfig.getExpirationMs());
+        
+        String uuid = getOrCreateUuid(phone);
 
         return Jwts.builder()
             .setSubject(phone)
+            .claim("uuid", uuid)
             .setIssuedAt(now)
             .setExpiration(expiryDate)
             .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())
@@ -63,9 +86,12 @@ public class TokenService {
     public String generateRefreshToken(String phone) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtConfig.getRefreshExpirationMs());
+        
+        String uuid = getOrCreateUuid(phone);
 
         String refreshToken = Jwts.builder()
             .setSubject(phone)
+            .claim("uuid", uuid)
             .setIssuedAt(now)
             .setExpiration(expiryDate)
             .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())
