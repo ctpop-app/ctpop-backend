@@ -1,7 +1,7 @@
 package com.ctpop.auth.service;
 
 import com.ctpop.auth.config.TwilioConfig;
-import com.ctpop.auth.dto.TokenResponse;
+import com.ctpop.auth.dto.response.TokenResponse;
 import com.ctpop.auth.exception.OtpException;
 import com.twilio.rest.verify.v2.service.Verification;
 import com.twilio.rest.verify.v2.service.VerificationCheck;
@@ -123,9 +123,6 @@ public class OtpService {
                 log.error("Redis 연결 실패: {}. OTP는 발송되었으나 상태 저장에 실패했습니다.", e.getMessage());
             }
             
-        } catch (RedisConnectionFailureException e) {
-            log.error("Redis 연결 실패: {}", e.getMessage());
-            throw new OtpException("OTP 전송에 실패했습니다: " + e.getMessage());
         } catch (Exception e) {
             log.error("OTP 전송 중 오류 발생: {}", e.getMessage());
             throw new OtpException("OTP 전송에 실패했습니다: " + e.getMessage());
@@ -219,14 +216,5 @@ public class OtpService {
             log.warn("Redis 서버가 연결 불가능한 상태입니다: {}", e.getMessage());
             return true;
         }
-    }
-
-    private String generateToken(String phone) {
-        return Jwts.builder()
-            .setSubject(phone)
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + 300000)) // 5분
-            .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())  // jwtConfig 직접 사용
-            .compact();
     }
 } 
