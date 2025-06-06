@@ -3,6 +3,7 @@ package com.ctpop.auth.controller;
 import com.ctpop.auth.dto.request.OtpRequest;
 import com.ctpop.auth.dto.response.TokenResponse;
 import com.ctpop.auth.service.OtpService;
+import com.ctpop.auth.exception.OtpException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,21 +20,29 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class OtpController {
     private final OtpService otpService;
-
+    
     /**
      * 인증번호를 발송합니다.
      */
     @PostMapping("/send")
-    public ResponseEntity<Void> sendOtp(@RequestBody OtpRequest request) {
-        otpService.sendOtp(request.getPhone());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<TokenResponse> sendOtp(@RequestBody OtpRequest request) {
+        TokenResponse response = otpService.sendOtp(request.getPhone());
+        return ResponseEntity.ok(response);
     }
-
+    
     /**
      * 인증번호를 확인하고 토큰을 발급합니다.
      */
     @PostMapping("/verify")
-    public ResponseEntity<TokenResponse> verifyOtp(@RequestBody OtpRequest request) {
-        return ResponseEntity.ok(otpService.verifyOtp(request.getPhone(), request.getCode()));
+    public ResponseEntity<TokenResponse> verifyOtp(
+            @RequestBody OtpRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new OtpException("유효하지 않은 인증 정보입니다.");
+        }
+        
+        // Bearer 토큰에서 액세스 토큰 추출
+        String accessToken = authorization.replace("Bearer ", "");
+        return ResponseEntity.ok(otpService.verifyOtp(request.getPhone(), request.getCode(), accessToken));
     }
 } 

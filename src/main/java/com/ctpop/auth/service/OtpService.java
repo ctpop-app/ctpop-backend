@@ -14,9 +14,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import com.ctpop.auth.config.JwtConfig;
+import com.ctpop.auth.exception.TokenException;
 
 import java.util.concurrent.TimeUnit;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * OTP 인증 관련 비즈니스 로직을 처리하는 서비스
@@ -88,6 +90,7 @@ public class OtpService {
      * 1. 전화번호를 E.164 국제 형식으로 변환
      * 2. Twilio Verify 서비스를 통해 SMS로 OTP 전송
      * 3. Redis에 전화번호와 상태를 저장 (5분 유효)
+     * 4. 액세스 토큰 생성 및 반환
      * 
      * 저장 형식: 
      * - 키: "otp:{전화번호}"
@@ -95,9 +98,10 @@ public class OtpService {
      * - 만료 시간: 5분
      * 
      * @param phone 사용자 전화번호 (예: 010-2736-2040)
+     * @return TokenResponse 액세스 토큰이 포함된 응답
      * @throws OtpException 전화번호 형식이 올바르지 않거나 OTP 전송에 실패한 경우
      */
-    public void sendOtp(String phone) {
+    public TokenResponse sendOtp(String phone) {
         try {
             // 전화번호 형식 검증 및 변환
             String internationalPhone = toInternationalFormat(phone);
@@ -123,6 +127,12 @@ public class OtpService {
                 log.error("Redis 연결 실패: {}. OTP는 발송되었으나 상태 저장에 실패했습니다.", e.getMessage());
             }
             
+            // UUID 생성 및 액세스 토큰 발급
+            String uuid = UUID.randomUUID().toString();
+            String accessToken = tokenService.generateAccessToken(uuid);
+            
+            return new TokenResponse(accessToken, null, uuid);
+            
         } catch (Exception e) {
             log.error("OTP 전송 중 오류 발생: {}", e.getMessage());
             throw new OtpException("OTP 전송에 실패했습니다: " + e.getMessage());
@@ -130,40 +140,17 @@ public class OtpService {
     }
 
     /**
-     * 사용자가 입력한 OTP를 검증합니다.
-     * 
-     * 처리 과정:
-     * 1. Redis에서 전화번호에 대한 OTP 상태 확인
-     * 2. Twilio Verify 서비스로 OTP 코드 검증
-     * 3. 검증 성공 시 Redis에서 데이터 삭제
-     * 4. 토큰 서비스를 통해 JWT 토큰 발급
-     * 
-     * @param phone 사용자 전화번호 (예: 010-2736-2040)
-     * @param code 사용자가 입력한 OTP 코드
-     * @return 검증 성공 시 액세스 토큰과 리프레시 토큰이 포함된 TokenResponse 객체
-     * @throws OtpException OTP가 만료되었거나 코드가 일치하지 않는 경우
+     * OTP를 검증하고 토큰을 발급합니다.
      */
-    public TokenResponse verifyOtp(String phone, String code) {
+    public TokenResponse verifyOtp(String phone, String code, String accessToken) {
         try {
-            // Redis에서 OTP 상태 확인
-            String key = OTP_PREFIX + phone;
-            String status = null;
+            // 액세스 토큰 검증
+            String uuid = tokenService.validateAccessToken(accessToken);
             
-            try {
-                status = redisTemplate.opsForValue().get(key);
-            } catch (RedisConnectionFailureException e) {
-                log.error("Redis 연결 실패: {}. OTP 상태 확인을 건너뜁니다.", e.getMessage());
-                // Redis 연결 실패 시에도 Twilio로 OTP 검증 시도
-            }
-            
-            if (status == null && !isRedisUnavailable()) {
-                log.warn("OTP 상태가 Redis에 없습니다. 전화번호: {}", phone);
-                // Redis 연결은 있지만 상태가 없는 경우 (만료 등)
-                throw new OtpException("OTP가 만료되었거나 존재하지 않습니다. 다시 인증해주세요.");
-            }
-
-            // Twilio Verify 서비스로 OTP 검증
+            // 전화번호 형식 변환
             String internationalPhone = toInternationalFormat(phone);
+            
+            // Twilio를 통한 OTP 검증
             VerificationCheck verificationCheck = VerificationCheck.creator(
                 twilioConfig.getVerifySid()
             )
@@ -171,34 +158,25 @@ public class OtpService {
             .setCode(code)
             .create();
 
-            // 검증 결과 확인
-            if ("approved".equals(verificationCheck.getStatus())) {
-                // OTP 검증 성공 시 Redis에서 데이터 삭제 시도
-                try {
-                    redisTemplate.delete(key);
-                } catch (RedisConnectionFailureException e) {
-                    log.error("Redis 연결 실패: {}. OTP 상태 삭제를 건너뜁니다.", e.getMessage());
+            log.info("Verification Check: {}", verificationCheck);
+            log.info("Verification Status: {}", verificationCheck.getStatus());
+            
+            if (!"approved".equals(verificationCheck.getStatus())) {
+                throw new OtpException("잘못된 인증번호입니다.");
                 }
                 
-                // Access Token과 Refresh Token 발급
-                String accessToken = tokenService.generateAccessToken(phone);
-                String refreshToken = tokenService.generateRefreshToken(phone);
+            // OTP 검증 성공 시 리프레시 토큰만 발급
+            String refreshToken = tokenService.generateRefreshToken(uuid);
                 
-                // UUID 추출
-                Claims claims = Jwts.parser()
-                    .setSigningKey(jwtConfig.getSecret())
-                    .parseClaimsJws(accessToken)
-                    .getBody();
-                String uuid = claims.get("uuid", String.class);
+            // Redis에서 OTP 상태 삭제
+            String otpKey = OTP_PREFIX + phone;
+            redisTemplate.delete(otpKey);
                 
-                return new TokenResponse(accessToken, refreshToken, uuid);
-            }
-            
-            throw new OtpException("OTP 코드가 일치하지 않습니다.");
-            
-        } catch (OtpException e) {
-            throw e;
+            return new TokenResponse(null, refreshToken, uuid);
+        } catch (TokenException e) {
+            throw new OtpException("유효하지 않은 액세스 토큰입니다.");
         } catch (Exception e) {
+            log.error("OTP 검증 중 오류 발생: {}", e.getMessage());
             throw new OtpException("OTP 검증에 실패했습니다: " + e.getMessage());
         }
     }
