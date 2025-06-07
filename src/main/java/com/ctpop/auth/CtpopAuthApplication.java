@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
+import java.io.File;
 
 /**
  * CT Pop 서비스의 인증 모듈 애플리케이션 진입점 클래스
@@ -33,6 +34,9 @@ public class CtpopAuthApplication {
      * @param args 명령행 인자
      */
     public static void main(String[] args) {
+        // Windows와 macOS 모두에서 동작하도록 수정
+        String envPath = System.getProperty("user.dir") + File.separator + ".env";
+        System.setProperty("spring.config.import", "optional:file:" + envPath);
         SpringApplication.run(CtpopAuthApplication.class, args);
     }
 } 

@@ -76,8 +76,9 @@ public class SecurityConfig {
                     })
             )
             
-            // HTTP 요청 인증 설정 - 개발 중에는 모든 경로 허용
+            // HTTP 요청 인증 설정
             .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().permitAll()
             )
             

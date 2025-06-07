@@ -7,6 +7,7 @@ import com.twilio.rest.verify.v2.service.Verification;
 import com.twilio.rest.verify.v2.service.VerificationCheck;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -37,9 +38,11 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class OtpService {
+    @Qualifier("redisTemplate")
     private final RedisTemplate<String, String> redisTemplate;
     private final TwilioConfig twilioConfig;
     private final TokenService tokenService;
+    @Qualifier("jwtConfig")
     private final JwtConfig jwtConfig;
 
     // Redis에 저장할 OTP 관련 키의 접두사

@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.context.annotation.Primary;
 
 /**
  * Redis 연동에 필요한 설정 정보를 관리하는 클래스
@@ -32,6 +33,7 @@ public class RedisConfig {
      * @return 구성된 RedisTemplate 인스턴스
      */
     @Bean
+    @Primary
     public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
