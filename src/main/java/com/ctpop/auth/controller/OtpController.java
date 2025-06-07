@@ -5,6 +5,7 @@ import com.ctpop.auth.dto.response.TokenResponse;
 import com.ctpop.auth.service.OtpService;
 import com.ctpop.auth.exception.OtpException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 1. OTP 전송 - 사용자 전화번호로 인증 코드 전송
  * 2. OTP 검증 - 사용자가 입력한 코드 검증 및 토큰 발급
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/otp")
 @RequiredArgsConstructor
@@ -26,7 +28,9 @@ public class OtpController {
      */
     @PostMapping("/send")
     public ResponseEntity<TokenResponse> sendOtp(@RequestBody OtpRequest request) {
+        log.info("OTP 전송 요청 수신 - 전화번호: {}", request.getPhone());
         TokenResponse response = otpService.sendOtp(request.getPhone());
+        log.info("OTP 전송 완료 - UUID: {}", response.getUuid());
         return ResponseEntity.ok(response);
     }
     
@@ -37,12 +41,19 @@ public class OtpController {
     public ResponseEntity<TokenResponse> verifyOtp(
             @RequestBody OtpRequest request,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        log.info("OTP 검증 요청 수신 - 전화번호: {}, 코드: {}", request.getPhone(), request.getCode());
+        
         if (authorization == null || !authorization.startsWith("Bearer ")) {
+            log.error("유효하지 않은 인증 정보 - Authorization 헤더: {}", authorization);
             throw new OtpException("유효하지 않은 인증 정보입니다.");
         }
         
         // Bearer 토큰에서 액세스 토큰 추출
         String accessToken = authorization.replace("Bearer ", "");
-        return ResponseEntity.ok(otpService.verifyOtp(request.getPhone(), request.getCode(), accessToken));
+        log.info("액세스 토큰 추출 완료");
+        
+        TokenResponse response = otpService.verifyOtp(request.getPhone(), request.getCode(), accessToken);
+        log.info("OTP 검증 완료 - UUID: {}", response.getUuid());
+        return ResponseEntity.ok(response);
     }
 } 
