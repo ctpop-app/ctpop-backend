@@ -144,13 +144,18 @@ public class OtpService {
      */
     public TokenResponse verifyOtp(String phone, String code, String accessToken) {
         try {
+            log.info("OTP 검증 시작 - 전화번호: {}, 코드: {}", phone, code);
+            
             // 액세스 토큰 검증
             String uuid = tokenService.validateAccessToken(accessToken);
+            log.info("액세스 토큰 검증 성공 - UUID: {}", uuid);
             
             // 전화번호 형식 변환
             String internationalPhone = toInternationalFormat(phone);
+            log.info("전화번호 형식 변환: {} -> {}", phone, internationalPhone);
             
             // Twilio를 통한 OTP 검증
+            log.info("Twilio verification check 요청 시작");
             VerificationCheck verificationCheck = VerificationCheck.creator(
                 twilioConfig.getVerifySid()
             )
@@ -158,25 +163,32 @@ public class OtpService {
             .setCode(code)
             .create();
 
-            log.info("Verification Check: {}", verificationCheck);
+            log.info("Verification Check 응답: {}", verificationCheck);
             log.info("Verification Status: {}", verificationCheck.getStatus());
+            log.info("Verification Valid: {}", verificationCheck.getValid());
             
             if (!"approved".equals(verificationCheck.getStatus())) {
+                log.warn("OTP 검증 실패 - 상태: {}", verificationCheck.getStatus());
                 throw new OtpException("잘못된 인증번호입니다.");
-                }
+            }
+            
+            log.info("OTP 검증 성공");
                 
             // OTP 검증 성공 시 리프레시 토큰만 발급
             String refreshToken = tokenService.generateRefreshToken(uuid);
+            log.info("리프레시 토큰 발급 완료");
                 
             // Redis에서 OTP 상태 삭제
             String otpKey = OTP_PREFIX + phone;
             redisTemplate.delete(otpKey);
+            log.info("Redis OTP 상태 삭제 완료");
                 
             return new TokenResponse(null, refreshToken, uuid);
         } catch (TokenException e) {
+            log.error("액세스 토큰 검증 실패: {}", e.getMessage());
             throw new OtpException("유효하지 않은 액세스 토큰입니다.");
         } catch (Exception e) {
-            log.error("OTP 검증 중 오류 발생: {}", e.getMessage());
+            log.error("OTP 검증 중 오류 발생: {}", e.getMessage(), e);
             throw new OtpException("OTP 검증에 실패했습니다: " + e.getMessage());
         }
     }

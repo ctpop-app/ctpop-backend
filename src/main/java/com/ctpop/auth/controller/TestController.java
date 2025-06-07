@@ -1,12 +1,14 @@
 package com.ctpop.auth.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * 테스트용 API를 제공하는 컨트롤러
  */
+@Slf4j
 @RestController
 @RequestMapping("/test")
 @RequiredArgsConstructor
@@ -19,6 +21,9 @@ public class TestController {
      */
     @GetMapping("/echo")
     public ResponseEntity<String> echo(@RequestParam(required = false) String message) {
-        return ResponseEntity.ok(message != null ? message : "echo");
+        log.info("서버 연결 테스트 요청 수신 - 메시지: {}", message);
+        String response = message != null ? message : "echo";
+        log.info("서버 연결 테스트 응답 전송 - 응답: {}", response);
+        return ResponseEntity.ok(response);
     }
 } 
