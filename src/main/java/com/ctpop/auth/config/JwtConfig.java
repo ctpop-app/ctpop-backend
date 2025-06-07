@@ -2,6 +2,7 @@ package com.ctpop.auth.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Data
 @Configuration
+@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "app.jwt")
 public class JwtConfig {
     // JWT 토큰 서명에 사용되는 비밀키 (.env 파일의 JWT_SECRET을 사용)

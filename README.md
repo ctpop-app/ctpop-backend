@@ -68,15 +68,57 @@ SPRING_PROFILES_ACTIVE=prod
 java -jar build/libs/ctpop-backend-0.0.1-SNAPSHOT.jar
 ```
 
-## API 엔드포인트
+## 인증 시스템
 
-서비스가 실행되면 다음 엔드포인트를 사용할 수 있습니다:
+### 인증 흐름
 
-- `POST /api/auth/otp/send`: OTP 코드 발송
-- `POST /api/auth/otp/verify`: OTP 코드 검증 및 토큰 발급
-- `POST /api/auth/refresh`: 액세스 토큰 갱신
-- `POST /api/auth/logout`: 로그아웃 (토큰 무효화)
-- `GET /api/auth/echo`: 에코 테스트 (서버 연결 확인용)
+1. **OTP 인증 (최초/로그아웃/회원탈퇴/30일 이상 미접속)**
+   - OTP 인증 성공 시 액세스 토큰(짧은 유효기간)과 리프레시 토큰(30일) 발급
+   - 액세스 토큰은 인증 직후 보호된 API(프로필 등록 등)에만 사용
+   - UUID는 OTP 인증 시 생성되어 사용자의 고유 식별자로 사용됨
 
-API 문서는 아래 URL에서 확인할 수 있습니다:
-- Swagger UI: http://localhost:8080/swagger-ui.html 
+2. **일반 인증 (앱 재접속/로그인)**
+   - 리프레시 토큰으로만 인증
+   - 리프레시 토큰 유효기간(30일) 검증
+   - 검증 통과 시 새로운 리프레시 토큰 재발급(기존 토큰 무효화)
+   - 액세스 토큰은 필요 시만 발급
+
+### API 엔드포인트
+
+#### 테스트 관련 (`/test/*`)
+- `GET /echo` - 서버 연결 테스트
+  - Request: `?message=test`
+  - Response: `"test"`
+
+#### OTP 관련 (`/auth/otp/*`)
+- `POST /send` - OTP 전송
+  - Request: `{ "phone": "01012345678" }`
+  - Response: `204 No Content`
+
+- `POST /verify` - OTP 검증 및 토큰 발급
+  - Request: `{ "phone": "01012345678", "code": "123456" }`
+  - Response: `{ "accessToken": "...", "refreshToken": "...", "uuid": "..." }`
+
+#### 토큰 관련 (`/auth/*`)
+- `POST /refresh` - 리프레시 토큰 검증 및 재발급
+  - Request: `{ "uuid": "...", "refreshToken": "..." }`
+  - Response: `{ "refreshToken": "...", "uuid": "..." }`
+
+- `POST /logout` - 로그아웃
+  - Request: `{ "uuid": "..." }`
+  - Response: `204 No Content`
+
+### 토큰 관리
+
+- **UUID 기반 토큰 관리**
+  - 모든 토큰은 UUID를 기준으로 생성 및 관리됨
+  - Redis에 토큰 저장 시 UUID를 키로 사용
+  - 토큰의 subject와 claim에 UUID 포함
+
+- **토큰 유효기간**
+  - 액세스 토큰: 30분
+  - 리프레시 토큰: 30일
+
+### 예외 처리
+- `OtpException`: OTP 관련 예외 (전송 실패, 검증 실패 등)
+- `TokenException`: 토큰 관련 예외 (검증 실패, 만료, 변조 등) 
