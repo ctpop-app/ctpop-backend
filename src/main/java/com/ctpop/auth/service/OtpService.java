@@ -44,6 +44,8 @@ public class OtpService {
 
     // Redis에 저장할 OTP 관련 키의 접두사
     private static final String OTP_PREFIX = "otp:";
+    // UUID 매핑을 위한 키 접두사
+    private static final String UUID_PREFIX = "uuid:";
     // OTP 코드의 유효 시간 (분 단위)
     private static final int OTP_EXPIRATION_MINUTES = 5;
 
@@ -127,8 +129,19 @@ public class OtpService {
                 log.error("Redis 연결 실패: {}. OTP는 발송되었으나 상태 저장에 실패했습니다.", e.getMessage());
             }
             
-            // UUID 생성 및 액세스 토큰 발급
-            String uuid = UUID.randomUUID().toString();
+            // 기존 UUID 확인 또는 새로 생성
+            String uuidKey = UUID_PREFIX + phone;
+            String uuid = redisTemplate.opsForValue().get(uuidKey);
+            
+            if (uuid == null) {
+                uuid = UUID.randomUUID().toString();
+                // UUID는 만료 없이 저장
+                redisTemplate.opsForValue().set(uuidKey, uuid);
+                log.info("새로운 UUID 생성 및 저장: {}", uuid);
+            } else {
+                log.info("기존 UUID 재사용: {}", uuid);
+            }
+            
             String accessToken = tokenService.generateAccessToken(uuid);
             
             return new TokenResponse(accessToken, null, uuid);
