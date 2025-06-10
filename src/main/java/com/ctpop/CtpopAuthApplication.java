@@ -1,4 +1,4 @@
-package com.ctpop.auth;
+package com.ctpop;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
