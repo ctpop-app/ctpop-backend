@@ -4,6 +4,7 @@ import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,11 @@ public class SocketController {
     private final SocketIOServer socketIOServer;
     private final Map<String, SocketIOClient> userSessions = new ConcurrentHashMap<>();
 
+    @PostConstruct
     public void init() {
+        socketIOServer.start();
+        log.info("Socket.IO server started");
+
         socketIOServer.addConnectListener(client -> {
             String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
             if (uuid != null) {
@@ -41,6 +46,15 @@ public class SocketController {
             String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
             if (uuid != null) {
                 log.debug("Heartbeat from user: {}", uuid);
+                client.sendEvent("pong");
+            }
+        });
+
+        socketIOServer.addEventListener("getOnlineUsers", String.class, (client, data, ackSender) -> {
+            String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
+            if (uuid != null) {
+                log.debug("Online users request from: {}", uuid);
+                client.sendEvent("onlineUsersList", userSessions.keySet());
             }
         });
     }
