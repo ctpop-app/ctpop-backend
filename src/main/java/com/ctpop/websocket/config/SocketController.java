@@ -59,7 +59,7 @@ public class SocketController {
                 
                 // 다른 사용자들에게 연결 상태 브로드캐스트
                 broadcastUserStatus(uuid, true);
-                log.info("User connected: {}", uuid);
+                log.info("Client connected: {}", uuid);
             }
         });
 
@@ -76,7 +76,7 @@ public class SocketController {
                 
                 // 다른 사용자들에게 연결 해제 상태 브로드캐스트
                 broadcastUserStatus(uuid, false);
-                log.info("User disconnected: {}", uuid);
+                log.info("Client disconnected: {}", uuid);
             }
         });
 
@@ -164,7 +164,13 @@ public class SocketController {
     private void broadcastNearbyDistances(String uuid) {
         // 요청한 사용자의 위치 정보 조회
         Location myLocation = userLocations.get(uuid);
-        if (myLocation == null) return;
+        if (myLocation == null) {
+            log.warn("No location found for user: {}", uuid);
+            return;
+        }
+
+        log.info("Starting distance calculation for user: {} at ({}, {})", 
+            uuid, myLocation.getLatitude(), myLocation.getLongitude());
 
         // 다른 사용자들과의 거리 정보를 저장할 맵
         Map<String, DistanceInfo> distances = new ConcurrentHashMap<>();
@@ -177,7 +183,11 @@ public class SocketController {
                 Location otherLocation = entry.getValue();
                 // Haversine 공식을 사용하여 두 지점 간의 거리 계산 (미터 단위)
                 double distanceInMeters = calculateDistance(myLocation, otherLocation);
-                distances.put(otherUuid, new DistanceInfo(distanceInMeters));
+                DistanceInfo distanceInfo = new DistanceInfo(distanceInMeters);
+                distances.put(otherUuid, distanceInfo);
+                
+                log.info("Distance calculated: {} -> {} = {}m ({})", 
+                    uuid, otherUuid, distanceInfo.getDistance(), distanceInfo.getFormattedDistance());
             }
         }
 
@@ -185,7 +195,9 @@ public class SocketController {
         SocketIOClient client = userSessions.get(uuid);
         if (client != null) {
             client.sendEvent("nearbyDistances", distances);
-            log.debug("Sent distances to user {}: {}", uuid, distances);
+            log.info("Sent nearbyDistances to: {} - Data: {}", uuid, distances);
+        } else {
+            log.warn("Client not found for user: {}", uuid);
         }
     }
 
@@ -296,6 +308,12 @@ public class SocketController {
 
         public String getFormattedDistance() {
             return formattedDistance;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("{\"distance\": %.0f, \"formattedDistance\": \"%s\"}", 
+                distance, formattedDistance);
         }
     }
 }
