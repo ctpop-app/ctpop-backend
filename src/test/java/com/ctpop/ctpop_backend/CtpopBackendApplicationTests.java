@@ -1,6 +1,6 @@
 package com.ctpop.ctpop_backend;
 
-import com.ctpop.auth.CtpopAuthApplication;
+import com.ctpop.CtpopAuthApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 

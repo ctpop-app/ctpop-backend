@@ -42,14 +42,6 @@ public class SocketController {
             }
         });
 
-        socketIOServer.addEventListener("heartbeat", String.class, (client, data, ackSender) -> {
-            String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
-            if (uuid != null) {
-                log.debug("Heartbeat from user: {}", uuid);
-                client.sendEvent("pong");
-            }
-        });
-
         socketIOServer.addEventListener("getOnlineUsers", String.class, (client, data, ackSender) -> {
             String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
             if (uuid != null) {
