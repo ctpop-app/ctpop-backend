@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 거리 계산 테스트</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .log { background: #f5f5f5; padding: 10px; border-radius: 3px; max-height: 300px; overflow-y: auto; }
+        button { margin: 5px; padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input { padding: 5px; margin: 5px; width: 200px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebSocket 거리 계산 테스트</h1>
+        
+        <div class="section">
+            <h3>연결 설정</h3>
+            <input type="text" id="uuid" placeholder="사용자 UUID" value="test-user-1">
+            <button onclick="connect()">연결</button>
+            <button onclick="disconnect()">연결 해제</button>
+            <div id="connectionStatus" class="status disconnected">연결되지 않음</div>
+        </div>
+
+        <div class="section">
+            <h3>위치 업데이트</h3>
+            <input type="number" id="latitude" placeholder="위도" value="37.4979" step="0.0001">
+            <input type="number" id="longitude" placeholder="경도" value="127.0276" step="0.0001">
+            <button onclick="updateLocation()">위치 업데이트</button>
+        </div>
+
+        <div class="section">
+            <h3>거리 계산</h3>
+            <button onclick="getOnlineUsers()">온라인 유저 조회</button>
+            <button onclick="calculateDistances()">거리 계산</button>
+        </div>
+
+        <div class="section">
+            <h3>로그</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">로그 지우기</button>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateConnectionStatus() {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (isConnected) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = '연결됨';
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = '연결되지 않음';
+            }
+        }
+
+        function connect() {
+            const uuid = document.getElementById('uuid').value;
+            if (!uuid) {
+                alert('UUID를 입력해주세요.');
+                return;
+            }
+
+            socket = io('http://localhost:9090', {
+                query: { uuid: uuid }
+            });
+
+            socket.on('connect', () => {
+                isConnected = true;
+                updateConnectionStatus();
+                log(`연결됨: ${uuid}`);
+            });
+
+            socket.on('disconnect', () => {
+                isConnected = false;
+                updateConnectionStatus();
+                log('연결 해제됨');
+            });
+
+            socket.on('onlineUsersList', (users) => {
+                log(`온라인 유저 목록: ${JSON.stringify(users)}`);
+            });
+
+            socket.on('nearbyDistances', (distances) => {
+                log(`거리 정보 수신: ${JSON.stringify(distances)}`);
+            });
+
+            socket.on('userStatus', (data) => {
+                log(`유저 상태 변경: ${JSON.stringify(data)}`);
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`연결 오류: ${error.message}`);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                isConnected = false;
+                updateConnectionStatus();
+                log('연결 해제됨');
+            }
+        }
+
+        function updateLocation() {
+            if (!isConnected) {
+                alert('먼저 연결해주세요.');
+                return;
+            }
+
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const longitude = parseFloat(document.getElementById('longitude').value);
+
+            if (isNaN(latitude) || isNaN(longitude)) {
+                alert('유효한 위도/경도를 입력해주세요.');
+                return;
+            }
+
+            socket.emit('updateLocation', {
+                latitude: latitude,
+                longitude: longitude
+            });
+
+            log(`위치 업데이트: (${latitude}, ${longitude})`);
+        }
+
+        function getOnlineUsers() {
+            if (!isConnected) {
+                alert('먼저 연결해주세요.');
+                return;
+            }
+
+            socket.emit('getOnlineUsers', '');
+            log('온라인 유저 조회 요청');
+        }
+
+        function calculateDistances() {
+            if (!isConnected) {
+                alert('먼저 연결해주세요.');
+                return;
+            }
+
+            socket.emit('calculateDistances', '');
+            log('거리 계산 요청');
+        }
+
+        // 페이지 로드 시 초기 상태 설정
+        updateConnectionStatus();
+    </script>
+</body>
+</html> 
