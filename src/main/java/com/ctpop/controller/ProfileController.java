@@ -58,34 +58,32 @@ public class ProfileController {
     }
 
     /**
-     * 테스트용 위치 설정 API
+     * 실시간 위치 허용 상태를 업데이트합니다.
      */
-    @PostMapping("/test/setup-locations")
-    public ResponseEntity<Map<String, String>> setupTestLocations() {
-        // 서울의 주요 지역들
-        double[][] locations = {
-            {37.5665, 126.9780}, // 서울시청
-            {37.5519, 126.9882}, // 명동
-            {37.5796, 126.9770}, // 경복궁
-            {37.5139, 127.0606}, // 강남역
-            {37.4968, 127.0278}, // 잠실
-            {37.5447, 126.9513}, // 홍대
-            {37.5642, 126.9779}, // 광화문
-            {37.5668, 126.9787}  // 종로
-        };
+    @PostMapping("/{uuid}/location-permission")
+    public ResponseEntity<Map<String, Object>> updateLocationPermission(
+            @PathVariable String uuid,
+            @RequestBody Map<String, Boolean> request) {
         
-        String[] testUsers = {"user1", "user2", "user3", "user4", "user5", "user6", "user7", "user8"};
-        
-        for (int i = 0; i < Math.min(testUsers.length, locations.length); i++) {
-            LocationUpdateRequest request = new LocationUpdateRequest();
-            request.setLatitude(locations[i][0]);
-            request.setLongitude(locations[i][1]);
-            profileService.updateUserLocation(testUsers[i], request);
-        }
+        Boolean isAllowed = request.get("isAllowed");
+        profileService.updateLocationPermission(uuid, isAllowed);
         
         return ResponseEntity.ok(Map.of(
-            "message", "Test locations set up successfully",
-            "users", String.join(", ", testUsers)
+            "message", "Location permission updated successfully",
+            "uuid", uuid,
+            "isAllowed", isAllowed
+        ));
+    }
+
+    /**
+     * 사용자의 위치 허용 상태를 조회합니다.
+     */
+    @GetMapping("/{uuid}/location-permission")
+    public ResponseEntity<Map<String, Object>> getLocationPermission(@PathVariable String uuid) {
+        Boolean isAllowed = profileService.getLocationPermission(uuid);
+        return ResponseEntity.ok(Map.of(
+            "uuid", uuid,
+            "isAllowed", isAllowed
         ));
     }
 } 

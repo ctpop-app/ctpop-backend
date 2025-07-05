@@ -14,4 +14,5 @@ public class DistanceInfo {
     private Double distanceKm;
     private String formattedDistance;
     private String calculationMethod; // "backend" 또는 "frontend"
+    private String locationType; // "current" 또는 "last"
 } 

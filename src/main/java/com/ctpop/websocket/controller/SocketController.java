@@ -101,6 +101,26 @@ public class SocketController {
                 }
             }
         });
+
+        // 앱 종료 시 마지막 위치 전송 이벤트
+        socketIOServer.addEventListener("updateLastLocation", LocationUpdateRequest.class, (client, locationData, ackSender) -> {
+            String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
+            if (uuid != null) {
+                profileService.updateUserLastLocation(uuid, locationData);
+                log.info("Last location updated for user {}: ({}, {})", uuid, locationData.getLatitude(), locationData.getLongitude());
+                
+                // 다른 온라인 사용자들에게 마지막 위치 알림
+                List<String> onlineUsers = List.copyOf(userSessions.keySet());
+                if (!onlineUsers.isEmpty()) {
+                    socketIOServer.getBroadcastOperations().sendEvent("userLastLocation", Map.of(
+                        "uuid", uuid,
+                        "latitude", locationData.getLatitude(),
+                        "longitude", locationData.getLongitude(),
+                        "timestamp", System.currentTimeMillis()
+                    ));
+                }
+            }
+        });
     }
 
     private void broadcastUserStatus(String uuid, boolean isOnline) {
