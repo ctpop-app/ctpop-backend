@@ -87,6 +87,20 @@ public class SocketController {
                 }
             }
         });
+
+        // requestNearbyDistances 이벤트 핸들러 추가
+        socketIOServer.addEventListener("requestNearbyDistances", String.class, (client, data, ackSender) -> {
+            String uuid = client.getHandshakeData().getSingleUrlParam("uuid");
+            if (uuid != null) {
+                List<String> onlineUsers = List.copyOf(userSessions.keySet());
+                if (!onlineUsers.isEmpty()) {
+                    client.sendEvent("nearbyDistances", profileService.calculateDistances(uuid, onlineUsers));
+                    log.info("Nearby distances requested for user {} with {} online users", uuid, onlineUsers.size());
+                } else {
+                    log.debug("No online users found for distance calculation request from user: {}", uuid);
+                }
+            }
+        });
     }
 
     private void broadcastUserStatus(String uuid, boolean isOnline) {
