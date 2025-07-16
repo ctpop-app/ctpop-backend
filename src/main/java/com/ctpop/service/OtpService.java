@@ -1,8 +1,8 @@
-package com.ctpop.auth.service;
+package com.ctpop.service;
 
-import com.ctpop.auth.config.TwilioConfig;
-import com.ctpop.auth.dto.response.TokenResponse;
-import com.ctpop.auth.exception.OtpException;
+import com.ctpop.config.TwilioConfig;
+import com.ctpop.dto.response.TokenResponse;
+import com.ctpop.exception.OtpException;
 import com.twilio.rest.verify.v2.service.Verification;
 import com.twilio.rest.verify.v2.service.VerificationCheck;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import com.ctpop.auth.config.JwtConfig;
-import com.ctpop.auth.exception.TokenException;
+import com.ctpop.config.JwtConfig;
+import com.ctpop.exception.TokenException;
 
 import java.util.concurrent.TimeUnit;
 import java.util.Date;

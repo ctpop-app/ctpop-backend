@@ -1,4 +1,4 @@
-package com.ctpop.auth.exception;
+package com.ctpop.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

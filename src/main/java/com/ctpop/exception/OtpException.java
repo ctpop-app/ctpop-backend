@@ -1,4 +1,4 @@
-package com.ctpop.auth.exception;
+package com.ctpop.exception;
 
 /**
  * OTP 인증 과정에서 발생하는 예외를 처리하는 클래스

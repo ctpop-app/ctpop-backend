@@ -1,4 +1,4 @@
-package com.ctpop.auth.dto.request;
+package com.ctpop.dto.request;
 
 import lombok.Data;
 

@@ -1,4 +1,4 @@
-package com.ctpop.websocket.controller;
+package com.ctpop.controller;
 
 import com.ctpop.dto.request.LocationUpdateRequest;
 import com.ctpop.service.ProfileService;

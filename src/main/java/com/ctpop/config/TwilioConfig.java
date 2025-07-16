@@ -1,4 +1,4 @@
-package com.ctpop.auth.config;
+package com.ctpop.config;
 
 import com.twilio.Twilio;
 import jakarta.annotation.PostConstruct;
