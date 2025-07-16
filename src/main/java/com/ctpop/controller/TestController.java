@@ -1,7 +1,7 @@
-package com.ctpop.auth.controller;
+package com.ctpop.controller;
 
-import com.ctpop.auth.dto.response.TokenResponse;
-import com.ctpop.auth.service.TokenService;
+import com.ctpop.dto.response.TokenResponse;
+import com.ctpop.service.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

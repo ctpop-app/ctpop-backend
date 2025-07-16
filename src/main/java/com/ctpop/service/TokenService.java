@@ -1,9 +1,9 @@
-package com.ctpop.auth.service;
+package com.ctpop.service;
 
-import com.ctpop.auth.config.JwtConfig;
-import com.ctpop.auth.dto.request.TokenRequest;
-import com.ctpop.auth.dto.response.TokenResponse;
-import com.ctpop.auth.exception.TokenException;
+import com.ctpop.config.JwtConfig;
+import com.ctpop.dto.request.TokenRequest;
+import com.ctpop.dto.response.TokenResponse;
+import com.ctpop.exception.TokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

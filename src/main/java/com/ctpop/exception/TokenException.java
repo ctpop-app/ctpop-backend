@@ -1,4 +1,4 @@
-package com.ctpop.auth.exception;
+package com.ctpop.exception;
 
 /**
  * 토큰 관련 예외

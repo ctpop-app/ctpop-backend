@@ -1,4 +1,4 @@
-package com.ctpop.auth.config;
+package com.ctpop.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

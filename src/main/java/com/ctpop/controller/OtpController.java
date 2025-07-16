@@ -1,9 +1,9 @@
-package com.ctpop.auth.controller;
+package com.ctpop.controller;
 
-import com.ctpop.auth.dto.request.OtpRequest;
-import com.ctpop.auth.dto.response.TokenResponse;
-import com.ctpop.auth.service.OtpService;
-import com.ctpop.auth.exception.OtpException;
+import com.ctpop.dto.request.OtpRequest;
+import com.ctpop.dto.response.TokenResponse;
+import com.ctpop.service.OtpService;
+import com.ctpop.exception.OtpException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

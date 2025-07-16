@@ -1,4 +1,4 @@
-package com.ctpop.auth.config;
+package com.ctpop.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;

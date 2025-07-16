@@ -1,4 +1,4 @@
-package com.ctpop.auth.dto.response;
+package com.ctpop.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
